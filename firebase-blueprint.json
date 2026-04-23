@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account details and academic metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "photo_url": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher", "admin", "pending"] },
+        "enrollment_no": { "type": "string" },
+        "course": { "type": "string" },
+        "batch": { "type": "string" },
+        "section": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Course subjects mapping to classes",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "code": { "type": "string" },
+        "course": { "type": "string" },
+        "batch": { "type": "string" },
+        "section": { "type": "string" }
+      },
+      "required": ["name", "code"]
+    },
+    "AttendanceSession": {
+      "title": "Attendance Session",
+      "description": "A specific lecture window opened for attendance",
+      "type": "object",
+      "properties": {
+        "subject_id": { "type": "string" },
+        "teacher_id": { "type": "string" },
+        "date": { "type": "string" },
+        "lecture_no": { "type": "integer" },
+        "is_consecutive": { "type": "boolean" },
+        "window_duration_mins": { "type": "integer" },
+        "status": { "type": "string", "enum": ["open", "closed"] },
+        "opened_at": { "type": "string", "format": "date-time" },
+        "closed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles indexed by UID" },
+    "/subjects/{subjectId}": { "schema": "Subject", "description": "Subject definitions" },
+    "/attendance_sessions/{sessionId}": { "schema": "AttendanceSession", "description": "Lecture sessions" },
+    "/attendance_records/{recordId}": { "schema": "AttendanceRecord", "description": "Individual student marks for sessions" }
+  }
+}

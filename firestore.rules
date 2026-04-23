@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} { allow read, write: if false; }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isIgdtuw() { return isSignedIn() && request.auth.token.email.matches('.*@igdtuw[.]ac[.]in$'); }
+    function isBootstrap() { return request.auth.token.email == 'kanishkabanswalsgs@gmail.com'; }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Role Helpers (Cached in User Doc)
+    function getProfile(uid) { return get(/databases/$(database)/documents/users/$(uid)).data; }
+    function isAdmin() { return isBootstrap() || (isSignedIn() && getProfile(request.auth.uid).role == 'admin'); }
+    function isTeacher() { return isBootstrap() || (isSignedIn() && getProfile(request.auth.uid).role == 'teacher'); }
+    function isStudent() { return isSignedIn() && getProfile(request.auth.uid).role == 'student'; }
+
+    // Logic Gates
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    // --- COLLECTIONS ---
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid) && (
+                      (isBootstrap() && incoming().role == 'admin') ||
+                      (isIgdtuw() && incoming().role == 'pending') ||
+                      (incoming().role == 'pending') // Allow manual onboarding path
+                    ) &&
+                    incoming().keys().hasAll(['uid', 'email', 'role', 'created_at']);
+      allow update: if (isAdmin() && incoming().diff(existing()).affectedKeys().hasAny(['role', 'is_active', 'onboarding_status'])) ||
+                      (isOwner(uid) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'photo_url', 'course', 'batch', 'section', 'onboarding_status', 'enrollment_no', 'updated_at']));
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /courses_meta/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /teacher_subjects/{pairId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /attendance_sessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow create: if (isTeacher() || isAdmin()) && isValidId(sessionId);
+      allow update: if (isTeacher() || isAdmin()) && incoming().diff(existing()).affectedKeys().hasAny(['status', 'closed_at']);
+    }
+
+    match /attendance_records/{recordId} {
+      function canMarkAttendance() {
+        let session = get(/databases/$(database)/documents/attendance_sessions/$(incoming().session_id)).data;
+        return session.status == 'open';
+      }
+      
+      allow read: if isSignedIn() && (isOwner(resource.data.student_id) || isTeacher() || isAdmin());
+      allow create: if isStudent() && isOwner(incoming().student_id) && canMarkAttendance();
+      allow update: if (isTeacher() || isAdmin());
+    }
+
+    match /marks/{markId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.student_id) || isTeacher() || isAdmin());
+      allow write: if isTeacher() || isAdmin();
+    }
+
+    match /assignments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() || isAdmin();
+    }
+
+    match /assignment_submissions/{id} {
+      allow read: if isSignedIn() && (isOwner(resource.data.student_id) || isTeacher() || isAdmin());
+      allow create: if isStudent() && isOwner(incoming().student_id);
+      allow update: if isStudent() && isOwner(existing().student_id) || isTeacher() || isAdmin();
+    }
+
+    match /quizzes/{quizId} {
+      allow read: if isSignedIn();
+      allow write: if isTeacher() || isAdmin();
+
+      match /questions/{questionId} {
+        allow read: if isSignedIn();
+        allow write: if isTeacher() || isAdmin();
+      }
+    }
+
+    match /quiz_attempts/{id} {
+      allow read: if isOwner(resource.data.student_id) || isTeacher() || isAdmin();
+      allow create: if isStudent() && isOwner(incoming().student_id);
+    }
+
+    match /audit_log/{id} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+    }
+  }
+}

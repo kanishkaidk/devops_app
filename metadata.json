@@ -1,0 +1,6 @@
+{
+  "name": "IGDTUW Academic Management System",
+  "description": "A comprehensive system for managing academic attendance, marks, assignments, and quizzes for students and teachers at IGDTUW.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["auth", "database", "realtime", "analytics"]
+}

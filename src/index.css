@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand: #4F46E5;
+  --color-surface: #F9FAFB;
+  --color-card: #FFFFFF;
+}
+
+@layer base {
+  body {
+    @apply bg-surface text-[#111827] antialiased;
+  }
+}
+
+.bento-card {
+  @apply bg-white rounded-2xl border border-gray-200 shadow-sm p-6 transition-all duration-200;
+}
+
+.bento-card-dark {
+  @apply bg-gray-900 rounded-2xl shadow-xl p-6 text-white transition-all duration-200;
+}
+
+.bento-card-primary {
+  @apply bg-indigo-600 rounded-2xl shadow-sm p-6 text-white transition-all duration-200;
+}
+
+.markdown-body {
+  @apply prose prose-sm max-w-none text-gray-600;
+}
